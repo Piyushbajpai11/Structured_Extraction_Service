@@ -1,7 +1,9 @@
 """Compare local extraction results with the synthetic gold dataset."""
 
 import argparse
+import csv
 import json
+import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,10 +18,13 @@ from main import (
 
 
 PROJECT_DIR = Path(__file__).resolve().parent
-DATASET_DIR = PROJECT_DIR.parent / "milestone-0"
+DATASET_DIR = PROJECT_DIR / "data"
 MESSAGES_PATH = DATASET_DIR / "synthetic_messages.jsonl"
 EXPECTED_PATH = DATASET_DIR / "expected_outputs.jsonl"
 REPORT_PATH = PROJECT_DIR / "evaluation" / "latest_report.json"
+MARKDOWN_REPORT_PATH = PROJECT_DIR / "evaluation" / "latest_report.md"
+EXAMPLES_CSV_PATH = PROJECT_DIR / "evaluation" / "latest_examples.csv"
+FAILURES_CSV_PATH = PROJECT_DIR / "evaluation" / "latest_failures.csv"
 
 OUTPUT_FIELDS = (
     "name",
@@ -29,6 +34,12 @@ OUTPUT_FIELDS = (
     "budget_signal",
     "requires_human_review",
     "reason_for_review",
+)
+CLASSIFICATION_FIELDS = (
+    "intent",
+    "urgency",
+    "budget_signal",
+    "requires_human_review",
 )
 
 
@@ -55,7 +66,7 @@ def read_jsonl(path: Path) -> list[dict]:
 
 
 def summarize(results: list[dict]) -> dict:
-    """Calculate field accuracy and full-record exact-match rates."""
+    """Calculate exact, normalized-contact, and classification metrics."""
 
     eligible = [
         result
@@ -94,6 +105,9 @@ def summarize(results: list[dict]) -> dict:
         result["record_match_ignoring_reason_wording"] is True
         for result in eligible
     )
+    normalized_contact_matches = sum(
+        result.get("normalized_contact_match") is True for result in eligible
+    )
     return {
         "completed_examples": len(results),
         "expected_pre_call_rejections": len(expected_rejections),
@@ -119,6 +133,14 @@ def summarize(results: list[dict]) -> dict:
             for result in expected_rejections
         ),
         "field_accuracy": field_accuracy,
+        "classification_metrics": _classification_metrics(eligible),
+        "normalized_contact_accuracy": {
+            "correct": normalized_contact_matches,
+            "total": len(eligible),
+            "percent": round(normalized_contact_matches * 100 / len(eligible), 1)
+            if eligible
+            else None,
+        },
         "reason_presence_accuracy": {
             "correct": reason_presence_matches,
             "total": len(eligible),
@@ -139,6 +161,284 @@ def summarize(results: list[dict]) -> dict:
         if eligible
         else None,
     }
+
+
+def _classification_metrics(results: list[dict]) -> dict:
+    """Calculate per-label and macro/micro precision, recall, and F1."""
+
+    metrics = {}
+    for field in CLASSIFICATION_FIELDS:
+        pairs = []
+        for result in results:
+            expected = result.get("expected")
+            actual = result.get("actual")
+            if not isinstance(expected, dict):
+                continue
+            expected_label = expected.get(field)
+            predicted_label = (
+                actual.get(field, "__no_output__")
+                if isinstance(actual, dict)
+                else "__no_output__"
+            )
+            pairs.append((expected_label, predicted_label))
+
+        labels = {expected for expected, _ in pairs}
+        labels.update(
+            predicted
+            for _, predicted in pairs
+            if predicted != "__no_output__"
+        )
+        labels = sorted(labels, key=lambda value: str(value))
+        per_label = {}
+        total_tp = total_fp = total_fn = 0
+        f1_values = []
+        for label in labels:
+            true_positive = sum(
+                expected == label and predicted == label
+                for expected, predicted in pairs
+            )
+            false_positive = sum(
+                expected != label and predicted == label
+                for expected, predicted in pairs
+            )
+            false_negative = sum(
+                expected == label and predicted != label
+                for expected, predicted in pairs
+            )
+            precision, recall, f1 = _precision_recall_f1(
+                true_positive, false_positive, false_negative
+            )
+            support = sum(expected == label for expected, _ in pairs)
+            per_label[str(label)] = {
+                "precision": precision,
+                "recall": recall,
+                "f1": f1,
+                "support": support,
+            }
+            total_tp += true_positive
+            total_fp += false_positive
+            total_fn += false_negative
+            f1_values.append(f1)
+
+        micro_precision, micro_recall, micro_f1 = _precision_recall_f1(
+            total_tp, total_fp, total_fn
+        )
+        metrics[field] = {
+            "labels": per_label,
+            "macro_average": {
+                "precision": round(
+                    sum(item["precision"] for item in per_label.values()) / len(per_label),
+                    4,
+                )
+                if per_label
+                else None,
+                "recall": round(
+                    sum(item["recall"] for item in per_label.values()) / len(per_label),
+                    4,
+                )
+                if per_label
+                else None,
+                "f1": round(sum(f1_values) / len(f1_values), 4)
+                if f1_values
+                else None,
+            },
+            "micro_average": {
+                "precision": micro_precision,
+                "recall": micro_recall,
+                "f1": micro_f1,
+            },
+            "examples": len(pairs),
+        }
+    return metrics
+
+
+def _precision_recall_f1(
+    true_positive: int,
+    false_positive: int,
+    false_negative: int,
+) -> tuple[float, float, float]:
+    precision = (
+        true_positive / (true_positive + false_positive)
+        if true_positive + false_positive
+        else 0.0
+    )
+    recall = (
+        true_positive / (true_positive + false_negative)
+        if true_positive + false_negative
+        else 0.0
+    )
+    f1 = (
+        2 * precision * recall / (precision + recall)
+        if precision + recall
+        else 0.0
+    )
+    return round(precision, 4), round(recall, 4), round(f1, 4)
+
+
+def normalize_contact(value: object) -> str | None:
+    """Compare synthetic email/phone contacts while ignoring common formatting."""
+
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        return str(value).strip().casefold()
+    contact = value.strip().strip(".,;:<>[]{}()'\"")
+    if not contact:
+        return None
+    if "@" in contact:
+        return contact.casefold()
+    digits = re.sub(r"\D", "", contact)
+    if digits:
+        return digits
+    return " ".join(contact.casefold().split())
+
+
+def _atomic_write_text(path: Path, content: str) -> None:
+    temporary_path = path.with_suffix(path.suffix + ".tmp")
+    temporary_path.write_text(content, encoding="utf-8", newline="")
+    temporary_path.replace(path)
+
+
+def _csv_row(result: dict) -> dict:
+    field_matches = result.get("field_matches") or {}
+    return {
+        "id": result["id"],
+        "outcome": result["outcome"],
+        "expected_pre_call_rejection": result["expected_pre_call_rejection"],
+        "full_exact_match": bool(field_matches)
+        and all(field_matches.values()),
+        "normalized_contact_match": result.get("normalized_contact_match"),
+        "field_matches": json.dumps(field_matches, ensure_ascii=False),
+        "expected": json.dumps(result.get("expected"), ensure_ascii=False),
+        "actual": json.dumps(result.get("actual"), ensure_ascii=False),
+        "error_type": result.get("error_type"),
+        "error_message": result.get("error_message"),
+    }
+
+
+def _is_failure_case(result: dict) -> bool:
+    """Exclude correctly handled pre-call rejections from model failure lists."""
+
+    if result["outcome"] == "expected_rejection":
+        return False
+    field_matches = result.get("field_matches")
+    return (
+        result["outcome"] != "success"
+        or not field_matches
+        or not all(field_matches.values())
+    )
+
+
+def _write_csv(path: Path, rows: list[dict]) -> None:
+    headers = (
+        "id",
+        "outcome",
+        "expected_pre_call_rejection",
+        "full_exact_match",
+        "normalized_contact_match",
+        "field_matches",
+        "expected",
+        "actual",
+        "error_type",
+        "error_message",
+    )
+    temporary_path = path.with_suffix(path.suffix + ".tmp")
+    with temporary_path.open("w", encoding="utf-8", newline="") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=headers)
+        writer.writeheader()
+        writer.writerows(rows)
+    temporary_path.replace(path)
+
+
+def render_markdown_report(report: dict) -> str:
+    summary = report["summary"]
+    rows = [
+        "# Evaluation report",
+        "",
+        f"- Started (UTC): `{report['started_at_utc']}`",
+        f"- Model: `{report['model']}`",
+        f"- Annotation version: `{report['annotation_version']}`",
+        f"- Examples completed: {summary['completed_examples']} of {report['dataset_size']}",
+        f"- Successful extractions: {summary['successful_extractions']}",
+        f"- Correct pre-inference rejections: {summary['correct_pre_call_rejections']} of {summary['expected_pre_call_rejections']}",
+        "",
+        "## Field accuracy",
+        "",
+        "| Field | Exact matches | Accuracy | Macro F1 | Micro F1 |",
+        "|---|---:|---:|---:|---:|",
+    ]
+    for field, accuracy in summary["field_accuracy"].items():
+        class_metrics = summary["classification_metrics"].get(field)
+        macro_f1 = (
+            class_metrics["macro_average"]["f1"] if class_metrics else None
+        )
+        micro_f1 = (
+            class_metrics["micro_average"]["f1"] if class_metrics else None
+        )
+        rows.append(
+            f"| {field} | {accuracy['correct']}/{accuracy['total']} | "
+            f"{accuracy['percent']}% | {macro_f1 if macro_f1 is not None else '—'} | "
+            f"{micro_f1 if micro_f1 is not None else '—'} |"
+        )
+
+    rows.extend(
+        [
+            "",
+            "## Record-level results",
+            "",
+            f"- Full exact match: {summary['full_exact_matches']}/{summary['full_exact_match_total']} ({summary['full_exact_match_percent']}%).",
+            f"- Match ignoring review-reason wording: {summary['record_matches_ignoring_reason_wording']}/{summary['record_match_ignoring_reason_wording_total']} ({summary['record_match_ignoring_reason_wording_percent']}%).",
+            f"- Contact match after normalization: {summary['normalized_contact_accuracy']['correct']}/{summary['normalized_contact_accuracy']['total']} ({summary['normalized_contact_accuracy']['percent']}%).",
+            "- Contact normalization lowercases emails and ignores phone punctuation; the expected labels remain unchanged.",
+            "- Micro F1 pools decisions across labels. Macro F1 gives each label equal weight, including labels the model missed.",
+            "",
+            "## Failure cases",
+            "",
+        ]
+    )
+    failures = [result for result in report["results"] if _is_failure_case(result)]
+    if failures:
+        rows.append("| ID | Outcome | Mismatched fields | Error |")
+        rows.append("|---|---|---|---|")
+        for result in failures:
+            mismatches = ", ".join(
+                field
+                for field, matched in (result.get("field_matches") or {}).items()
+                if not matched
+            ) or "—"
+            error = (result.get("error_message") or "").replace("|", "\\|")
+            rows.append(
+                f"| {result['id']} | {result['outcome']} | {mismatches} | {error} |"
+            )
+    else:
+        rows.append("No failures in the completed examples.")
+    rows.extend(
+        [
+            "",
+            "Detailed per-example records are in `latest_examples.csv`; the filtered failure list is in `latest_failures.csv`.",
+            "",
+        ]
+    )
+    return "\n".join(rows)
+
+
+def write_report_artifacts(report: dict) -> None:
+    """Write JSON, Markdown, all-example CSV, and failure-only CSV reports."""
+
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _atomic_write_text(
+        REPORT_PATH,
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+    )
+    _atomic_write_text(MARKDOWN_REPORT_PATH, render_markdown_report(report))
+    csv_rows = [_csv_row(result) for result in report["results"]]
+    _write_csv(EXAMPLES_CSV_PATH, csv_rows)
+    failure_rows = [
+        _csv_row(result)
+        for result in report["results"]
+        if _is_failure_case(result)
+    ]
+    _write_csv(FAILURES_CSV_PATH, failure_rows)
 
 
 def parse_args() -> argparse.Namespace:
@@ -173,12 +473,7 @@ def save_report(
         "summary": summarize(results),
         "results": results,
     }
-    temporary_path = REPORT_PATH.with_suffix(".tmp")
-    temporary_path.write_text(
-        json.dumps(report, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    temporary_path.replace(REPORT_PATH)
+    write_report_artifacts(report)
 
 
 def main() -> None:
@@ -243,6 +538,7 @@ def main() -> None:
             "field_matches": None,
             "reason_presence_match": None,
             "record_match_ignoring_reason_wording": None,
+            "normalized_contact_match": None,
             "error_type": None,
             "error_message": None,
         }
@@ -289,6 +585,10 @@ def main() -> None:
                     )
                     and result_record["reason_presence_match"]
                 )
+                result_record["normalized_contact_match"] = (
+                    normalize_contact(actual.get("contact"))
+                    == normalize_contact(expected.get("contact"))
+                )
 
         results.append(result_record)
         save_report(started_at, results, len(messages), selected_ids)
@@ -316,7 +616,10 @@ def main() -> None:
     summary = summarize(results)
     print("\nEvaluation summary:")
     print(json.dumps(summary, ensure_ascii=False, indent=2))
-    print(f"\nDetailed report saved to: {REPORT_PATH}")
+    print(f"\nJSON report saved to: {REPORT_PATH}")
+    print(f"Markdown summary saved to: {MARKDOWN_REPORT_PATH}")
+    print(f"All-example CSV saved to: {EXAMPLES_CSV_PATH}")
+    print(f"Failure-case CSV saved to: {FAILURES_CSV_PATH}")
 
 
 if __name__ == "__main__":

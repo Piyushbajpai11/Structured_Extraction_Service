@@ -4,17 +4,17 @@ __pycache__/
 *.py[cod]
 logs/
 
-# Personal learning notes and local project tracking. Keep these on this computer.
-STEP1_GUIDE.md
-STEP2_GUIDE.md
-STEP3_GUIDE.md
-STEP4_GUIDE.md
-STEP5_GUIDE.md
-STEP6_GUIDE.md
-STEP7_GUIDE.md
-LEARNING_ROADMAP.md
+# Personal learning notes. Keep these on this computer, out of the public repo.
+STEP*_GUIDE.md
+LEARNING_*.md
 MILESTONE_AUDIT.md
+ARCHITECTURE_CHECKPOINT.md
 
 # Generated working reports; keep versioned baselines available for sharing.
 evaluation/latest_report.json
+evaluation/latest_report.md
+evaluation/latest_examples.csv
+evaluation/latest_failures.csv
+evaluation/latest_cost_summary.json
 evaluation/targeted-*.json
+evaluation/*.tmp

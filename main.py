@@ -1,6 +1,7 @@
 """Structured extraction service using a local Ollama model."""
 
 import json
+import math
 import os
 import sys
 import time
@@ -10,7 +11,8 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal
+from typing import Callable, Literal
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, ValidationError
@@ -55,7 +57,43 @@ def _parse_max_message_chars(raw_value: str | None) -> int:
 MAX_MESSAGE_CHARS = _parse_max_message_chars(os.getenv("MAX_MESSAGE_CHARS"))
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3.5:4b")
+OLLAMA_HOST = urlparse(OLLAMA_BASE_URL).hostname
+OLLAMA_PROVIDER = (
+    "ollama_local"
+    if OLLAMA_HOST in {"localhost", "127.0.0.1", "::1"}
+    else "ollama_remote"
+)
 USAGE_LOG_PATH = Path(__file__).resolve().parent / "logs" / "usage.jsonl"
+
+
+def _parse_optional_cost_rate(name: str) -> float | None:
+    """Read an optional USD price per million tokens from the environment."""
+
+    raw_value = os.getenv(name)
+    if raw_value is None or not raw_value.strip():
+        return None
+    try:
+        rate = float(raw_value.strip())
+    except ValueError as exc:
+        raise RuntimeError(f"{name} must be a non-negative number.") from exc
+    if not math.isfinite(rate) or rate < 0:
+        raise RuntimeError(f"{name} must be a finite, non-negative number.")
+    return rate
+
+
+MODEL_INPUT_COST_PER_1M_USD = _parse_optional_cost_rate(
+    "MODEL_INPUT_COST_PER_1M_USD"
+)
+MODEL_OUTPUT_COST_PER_1M_USD = _parse_optional_cost_rate(
+    "MODEL_OUTPUT_COST_PER_1M_USD"
+)
+if (MODEL_INPUT_COST_PER_1M_USD is None) != (
+    MODEL_OUTPUT_COST_PER_1M_USD is None
+):
+    raise RuntimeError(
+        "Set both MODEL_INPUT_COST_PER_1M_USD and "
+        "MODEL_OUTPUT_COST_PER_1M_USD, or leave both blank."
+    )
 
 
 class InputValidationError(ValueError):
@@ -70,10 +108,16 @@ class ModelCallError(RuntimeError):
         message: str,
         retry_count: int = 0,
         retryable: bool = False,
+        prompt_tokens: int | None = None,
+        completion_tokens: int | None = None,
+        ollama_total_duration_ms: int | None = None,
     ):
         super().__init__(message)
         self.retry_count = retry_count
         self.retryable = retryable
+        self.prompt_tokens = prompt_tokens
+        self.completion_tokens = completion_tokens
+        self.ollama_total_duration_ms = ollama_total_duration_ms
 
 
 @dataclass
@@ -295,6 +339,39 @@ def _duration_ms(value: object) -> int | None:
     return round(nanoseconds / 1_000_000) if nanoseconds is not None else None
 
 
+def _sum_optional(first: int | None, second: int | None) -> int | None:
+    """Add available token or duration values while preserving unknown usage."""
+
+    if first is None and second is None:
+        return None
+    return (first or 0) + (second or 0)
+
+
+def _estimate_provider_cost(
+    prompt_tokens: int | None,
+    completion_tokens: int | None,
+    inference_attempted: bool,
+) -> float | None:
+    """Estimate a billed remote Ollama server call from configured token rates."""
+
+    if not inference_attempted:
+        return 0.0
+    if OLLAMA_PROVIDER == "ollama_local":
+        return 0.0
+    if (
+        prompt_tokens is None
+        or completion_tokens is None
+        or MODEL_INPUT_COST_PER_1M_USD is None
+        or MODEL_OUTPUT_COST_PER_1M_USD is None
+    ):
+        return None
+    estimated_cost = (
+        prompt_tokens * MODEL_INPUT_COST_PER_1M_USD
+        + completion_tokens * MODEL_OUTPUT_COST_PER_1M_USD
+    ) / 1_000_000
+    return round(estimated_cost, 10)
+
+
 def _parse_model_completion(completion: object) -> ModelCallResult:
     """Validate an Ollama response body and extract its usage metadata."""
 
@@ -303,10 +380,18 @@ def _parse_model_completion(completion: object) -> ModelCallResult:
             "Ollama returned an invalid response body.", retryable=True
         )
 
+    prompt_tokens = _optional_int(completion.get("prompt_eval_count"))
+    completion_tokens = _optional_int(completion.get("eval_count"))
+    total_duration_ms = _duration_ms(completion.get("total_duration"))
+
     response_message = completion.get("message", {})
     if not isinstance(response_message, dict):
         raise ModelCallError(
-            "Ollama returned an invalid message body.", retryable=True
+            "Ollama returned an invalid message body.",
+            retryable=True,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            ollama_total_duration_ms=total_duration_ms,
         )
 
     response_text = response_message.get("content")
@@ -316,9 +401,16 @@ def _parse_model_completion(completion: object) -> ModelCallResult:
                 "Ollama returned a thinking trace but no final answer. "
                 "Check whether this Ollama version supports think=false.",
                 retryable=True,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                ollama_total_duration_ms=total_duration_ms,
             )
         raise ModelCallError(
-            "The model returned no text to parse.", retryable=True
+            "The model returned no text to parse.",
+            retryable=True,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            ollama_total_duration_ms=total_duration_ms,
         )
 
     try:
@@ -327,13 +419,16 @@ def _parse_model_completion(completion: object) -> ModelCallResult:
         raise ModelCallError(
             "The model response did not match the extraction schema.",
             retryable=True,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            ollama_total_duration_ms=total_duration_ms,
         ) from exc
 
     return ModelCallResult(
         candidate=candidate,
-        prompt_tokens=_optional_int(completion.get("prompt_eval_count")),
-        completion_tokens=_optional_int(completion.get("eval_count")),
-        ollama_total_duration_ms=_duration_ms(completion.get("total_duration")),
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        ollama_total_duration_ms=total_duration_ms,
         retry_count=0,
     )
 
@@ -358,6 +453,30 @@ def _request_model(message: str) -> ModelCallResult:
     }
     request_data = json.dumps(payload).encode("utf-8")
     retry_count = 0
+    prompt_tokens_total: int | None = None
+    completion_tokens_total: int | None = None
+    duration_ms_total: int | None = None
+
+    def remember_usage(
+        prompt_tokens: int | None,
+        completion_tokens: int | None,
+        duration_ms: int | None,
+    ) -> None:
+        nonlocal prompt_tokens_total, completion_tokens_total, duration_ms_total
+        prompt_tokens_total = _sum_optional(prompt_tokens_total, prompt_tokens)
+        completion_tokens_total = _sum_optional(
+            completion_tokens_total, completion_tokens
+        )
+        duration_ms_total = _sum_optional(duration_ms_total, duration_ms)
+
+    def failed_request(message: str) -> ModelCallError:
+        return ModelCallError(
+            message,
+            retry_count,
+            prompt_tokens=prompt_tokens_total,
+            completion_tokens=completion_tokens_total,
+            ollama_total_duration_ms=duration_ms_total,
+        )
 
     for _attempt in range(MAX_RETRIES + 1):
         request = urllib.request.Request(
@@ -372,11 +491,16 @@ def _request_model(message: str) -> ModelCallResult:
             ) as response:
                 completion = json.loads(response.read().decode("utf-8"))
             parsed = _parse_model_completion(completion)
+            remember_usage(
+                parsed.prompt_tokens,
+                parsed.completion_tokens,
+                parsed.ollama_total_duration_ms,
+            )
             return ModelCallResult(
                 candidate=parsed.candidate,
-                prompt_tokens=parsed.prompt_tokens,
-                completion_tokens=parsed.completion_tokens,
-                ollama_total_duration_ms=parsed.ollama_total_duration_ms,
+                prompt_tokens=prompt_tokens_total,
+                completion_tokens=completion_tokens_total,
+                ollama_total_duration_ms=duration_ms_total,
                 retry_count=retry_count,
             )
         except TimeoutError as exc:
@@ -384,11 +508,10 @@ def _request_model(message: str) -> ModelCallResult:
                 retry_count += 1
                 time.sleep(RETRY_WAIT_SECONDS)
                 continue
-            raise ModelCallError(
+            raise failed_request(
                 "Ollama did not finish the response within "
                 f"{REQUEST_TIMEOUT_SECONDS} seconds after "
                 f"{retry_count + 1} attempts.",
-                retry_count,
             ) from exc
         except urllib.error.HTTPError as exc:
             details = exc.read().decode("utf-8", errors="replace")
@@ -399,8 +522,8 @@ def _request_model(message: str) -> ModelCallResult:
                 retry_count += 1
                 time.sleep(RETRY_WAIT_SECONDS)
                 continue
-            raise ModelCallError(
-                f"Ollama returned HTTP {exc.code}: {details}", retry_count
+            raise failed_request(
+                f"Ollama returned HTTP {exc.code}: {details}"
             ) from exc
         except urllib.error.URLError as exc:
             if isinstance(exc.reason, TimeoutError) and retry_count < MAX_RETRIES:
@@ -408,33 +531,35 @@ def _request_model(message: str) -> ModelCallResult:
                 time.sleep(RETRY_WAIT_SECONDS)
                 continue
             if isinstance(exc.reason, TimeoutError):
-                raise ModelCallError(
-                    f"Ollama timed out after {retry_count + 1} attempts.",
-                    retry_count,
+                raise failed_request(
+                    f"Ollama timed out after {retry_count + 1} attempts."
                 ) from exc
-            raise ModelCallError(
+            raise failed_request(
                 "Could not connect to Ollama at "
                 f"{OLLAMA_BASE_URL}. Open the Ollama app and make sure the "
-                f"model '{OLLAMA_MODEL}' has been downloaded.",
-                retry_count,
+                f"model '{OLLAMA_MODEL}' has been downloaded."
             ) from exc
         except (json.JSONDecodeError, UnicodeDecodeError) as exc:
             if retry_count < MAX_RETRIES:
                 retry_count += 1
                 time.sleep(RETRY_WAIT_SECONDS)
                 continue
-            raise ModelCallError(
-                "Ollama returned a response that was not valid JSON.",
-                retry_count,
+            raise failed_request(
+                "Ollama returned a response that was not valid JSON."
             ) from exc
         except ModelCallError as exc:
+            remember_usage(
+                exc.prompt_tokens,
+                exc.completion_tokens,
+                exc.ollama_total_duration_ms,
+            )
             if exc.retryable and retry_count < MAX_RETRIES:
                 retry_count += 1
                 time.sleep(RETRY_WAIT_SECONDS)
                 continue
-            raise ModelCallError(str(exc), retry_count) from exc
+            raise failed_request(str(exc)) from exc
 
-    raise ModelCallError("Ollama did not return a usable response.", retry_count)
+    raise failed_request("Ollama did not return a usable response.")
 
 
 def _log_usage(
@@ -449,7 +574,7 @@ def _log_usage(
     completion_tokens: int | None = None,
     ollama_total_duration_ms: int | None = None,
     error_type: str | None = None,
-) -> None:
+) -> dict:
     """Append usage metadata without recording message or extraction content."""
 
     total_tokens = (
@@ -461,7 +586,7 @@ def _log_usage(
         "request_id": request_id,
         "timestamp_utc": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
         "status": status,
-        "provider": "ollama_local",
+        "provider": OLLAMA_PROVIDER,
         "model": OLLAMA_MODEL,
         "inference_attempted": inference_attempted,
         "input_characters": input_characters,
@@ -471,7 +596,11 @@ def _log_usage(
         "client_latency_ms": round((time.perf_counter() - started_at) * 1000),
         "ollama_total_duration_ms": ollama_total_duration_ms,
         "retry_count": retry_count,
-        "estimated_provider_cost_usd": 0.0,
+        "estimated_provider_cost_usd": _estimate_provider_cost(
+            prompt_tokens,
+            completion_tokens,
+            inference_attempted,
+        ),
         "estimated_local_energy_cost_usd": None,
         "error_type": error_type,
     }
@@ -485,9 +614,24 @@ def _log_usage(
             f"Warning: could not write usage log ({exc}).",
             file=sys.stderr,
         )
+    return event
 
 
-def extract_message(message: str) -> LeadExtraction | ExtractionFallback:
+def _record_usage(
+    usage_callback: Callable[[dict], None] | None,
+    **usage_fields: object,
+) -> None:
+    """Log usage and optionally pass the event to a user interface."""
+
+    event = _log_usage(**usage_fields)
+    if usage_callback is not None:
+        usage_callback(event)
+
+
+def extract_message(
+    message: str,
+    usage_callback: Callable[[dict], None] | None = None,
+) -> LeadExtraction | ExtractionFallback:
     """Validate, extract, route, and log one message or a safe fallback."""
 
     request_id = str(uuid.uuid4())
@@ -497,7 +641,8 @@ def extract_message(message: str) -> LeadExtraction | ExtractionFallback:
     try:
         cleaned_message = validate_message(message)
     except InputValidationError as exc:
-        _log_usage(
+        _record_usage(
+            usage_callback,
             request_id=request_id,
             status="rejected",
             started_at=started_at,
@@ -529,18 +674,23 @@ def extract_message(message: str) -> LeadExtraction | ExtractionFallback:
                 "message and enter the details manually."
             )
         )
-        _log_usage(
+        _record_usage(
+            usage_callback,
             request_id=request_id,
             status="fallback",
             started_at=started_at,
             input_characters=input_characters,
             inference_attempted=True,
             retry_count=exc.retry_count,
+            prompt_tokens=exc.prompt_tokens,
+            completion_tokens=exc.completion_tokens,
+            ollama_total_duration_ms=exc.ollama_total_duration_ms,
             error_type=type(exc).__name__,
         )
         return fallback
     except (ValidationError, ValueError) as exc:
-        _log_usage(
+        _record_usage(
+            usage_callback,
             request_id=request_id,
             status="error",
             started_at=started_at,
@@ -551,7 +701,8 @@ def extract_message(message: str) -> LeadExtraction | ExtractionFallback:
         )
         raise
 
-    _log_usage(
+    _record_usage(
+        usage_callback,
         request_id=request_id,
         status="success",
         started_at=started_at,
