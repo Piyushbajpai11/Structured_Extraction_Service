@@ -72,10 +72,24 @@ Create the virtual environment only if it does not exist yet:
 python -m venv .venv
 ```
 
+Activate it in this PowerShell window before running the project commands:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+The prompt should now begin with `(.venv)`. If PowerShell blocks the activation
+script, allow scripts for this window only, then activate again:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+```
+
 Create `.env` from the example only if `.env` does not exist. Then check that it contains the local Ollama settings shown below:
 
 ```powershell
-Copy-Item .env.example .env
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
 ```text
@@ -87,19 +101,19 @@ MAX_MESSAGE_CHARS=4000
 Install the project packages:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 Start the browser app:
 
 ```powershell
-.\.venv\Scripts\python.exe -m streamlit run app.py
+python -m streamlit run app.py
 ```
 
 For the command-line version, run:
 
 ```powershell
-.\.venv\Scripts\python.exe main.py
+python main.py
 ```
 
 ## Run the evaluation
@@ -107,13 +121,13 @@ For the command-line version, run:
 Evaluate the complete dataset:
 
 ```powershell
-.\.venv\Scripts\python.exe evaluate.py
+python evaluate.py
 ```
 
 During prompt iteration, evaluate selected IDs:
 
 ```powershell
-.\.venv\Scripts\python.exe evaluate.py --ids P02,P07,P15
+python evaluate.py --ids P02,P07,P15
 ```
 
 The evaluation saves progress in `evaluation\latest_report.json`. Versioned baseline files preserve earlier runs. P22 and P24 are expected to be rejected before inference.
@@ -124,7 +138,7 @@ Run the fast tests for input validation, schema constraints, review rules,
 service behavior, and timeout retry handling:
 
 ```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+python -m unittest discover -s tests -v
 ```
 
 The suite uses fake model responses, so it does not call Ollama. The current
