@@ -1,0 +1,20 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+logs/
+
+# Personal learning notes and local project tracking. Keep these on this computer.
+STEP1_GUIDE.md
+STEP2_GUIDE.md
+STEP3_GUIDE.md
+STEP4_GUIDE.md
+STEP5_GUIDE.md
+STEP6_GUIDE.md
+STEP7_GUIDE.md
+LEARNING_ROADMAP.md
+MILESTONE_AUDIT.md
+
+# Generated working reports; keep versioned baselines available for sharing.
+evaluation/latest_report.json
+evaluation/targeted-*.json

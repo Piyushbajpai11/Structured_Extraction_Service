@@ -1,0 +1,171 @@
+# Structured Extraction Service
+
+> **A local-first AI app that turns one customer message into a validated, reviewable JSON record.**
+
+**Python · Pydantic · Ollama · Qwen 3.5 4B · Streamlit · JSONL evaluation**
+
+![Stage: local MVP](https://img.shields.io/badge/stage-local%20MVP-0f766e)
+![Inference: Ollama](https://img.shields.io/badge/inference-Ollama-111827)
+![Interface: Streamlit](https://img.shields.io/badge/interface-Streamlit-ff4b4b)
+
+## Project snapshot
+
+| | Status |
+|---|---|
+| Local browser app | Working with Streamlit and Ollama |
+| Command-line app | Working |
+| Evaluation set | 25 synthetic examples, version 0.4 |
+| Core extraction and review decisions | 23/23 exact when reason wording is ignored |
+| Literal full-record match | 18/23; five review explanations use different wording |
+| Public deployment | Not deployed; the model runs locally |
+
+The evaluation is a useful learning baseline for this small synthetic set. It is not a guarantee of performance on arbitrary real-world messages.
+
+## What it does
+
+- Extracts a sender's name and contact, message intent, urgency, and budget signal.
+- Applies deterministic Python rules to decide when a person should review an extraction.
+- Rejects messages shorter than 3 characters or over the configurable limit
+  (4,000 by default) before model inference.
+- Shows readable result fields, review status, elapsed time, and provider-cost
+  information in the local browser page, or prints JSON in PowerShell.
+- Logs request metadata such as token counts and latency without logging the message or extraction output.
+- Compares model outputs with the project's 25-example synthetic dataset.
+
+## How a message flows through the app
+
+```mermaid
+flowchart LR
+    User[User] --> Browser[Streamlit page]
+    Browser --> App[app.py]
+    Terminal[PowerShell CLI] --> Service[main.py extraction service]
+    App --> Service
+    Service --> InputCheck[Input checks]
+    InputCheck --> Ollama[Local Ollama model]
+    Ollama --> Schema[Pydantic schema validation]
+    Schema --> Rules[Deterministic review rules]
+    Rules --> Result[Structured JSON]
+    Service --> UsageLog[Metadata-only usage log]
+    Result --> Browser
+    Result --> Terminal
+```
+
+`app.py` is the presentation layer. `main.py` contains the shared extraction, validation, review-routing, and logging logic. `evaluate.py` runs the model against the labelled examples.
+
+## Quick start on Windows
+
+Open PowerShell in this folder. Keep Ollama running and check that the model is installed:
+
+```powershell
+ollama list
+```
+
+If `qwen3.5:4b` is missing, download it once:
+
+```powershell
+ollama pull qwen3.5:4b
+```
+
+Create the virtual environment only if it does not exist yet:
+
+```powershell
+python -m venv .venv
+```
+
+Create `.env` from the example only if `.env` does not exist. Then check that it contains the local Ollama settings shown below:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+```text
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=qwen3.5:4b
+MAX_MESSAGE_CHARS=4000
+```
+
+Install the project packages:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+Start the browser app:
+
+```powershell
+.\.venv\Scripts\python.exe -m streamlit run app.py
+```
+
+For the command-line version, run:
+
+```powershell
+.\.venv\Scripts\python.exe main.py
+```
+
+## Run the evaluation
+
+Evaluate the complete dataset:
+
+```powershell
+.\.venv\Scripts\python.exe evaluate.py
+```
+
+During prompt iteration, evaluate selected IDs:
+
+```powershell
+.\.venv\Scripts\python.exe evaluate.py --ids P02,P07,P15
+```
+
+The evaluation saves progress in `evaluation\latest_report.json`. Versioned baseline files preserve earlier runs. P22 and P24 are expected to be rejected before inference.
+
+## Run automated checks
+
+Run the fast tests for input validation, schema constraints, review rules,
+service behavior, and timeout retry handling:
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
+
+The suite uses fake model responses, so it does not call Ollama. The current
+suite has 18 passing checks.
+
+### Version 0.4 evaluation
+
+The full run processed 25 examples: 23 were eligible for inference and two were expected pre-call rejections. All 23 matched the expected extraction fields and review decisions when reason wording was ignored. Both rejections were correct, and there were no inference errors. Literal full-record exact match was 18/23 (78.3%) because the review-reason text differed from its reference wording in five cases.
+
+## Project files
+
+```text
+structured-extraction-service/
+├── app.py                  # Streamlit browser interface
+├── main.py                 # Extraction service and command-line entry point
+├── evaluate.py             # Dataset evaluation and metrics
+├── requirements.txt        # Python dependencies
+├── .env.example            # Local Ollama settings template
+├── .gitignore              # Excludes local secrets, notes, and generated reports
+├── .streamlit/config.toml  # Streamlit color theme
+├── logs/                   # Runtime metadata log (ignored by Git)
+├── evaluation/             # Versioned evaluation baselines
+└── tests/                  # Fast local unit and service-flow checks
+
+../milestone-0/
+├── synthetic_messages.jsonl
+├── expected_outputs.jsonl
+└── annotation_guide.md
+```
+
+## Local use, privacy, and deployment
+
+The current `.env` points to Ollama at `localhost`, so the model call stays on this computer and no model API key is needed. The UI shows `$0.00` in hosted provider charges for local inference; electricity and hardware costs are not measured. `logs\usage.jsonl` stores operational metadata, not message contents or extracted fields. Evaluation reports contain expected and predicted fields for the synthetic examples.
+
+This repository has no public deployment yet. A hosted website cannot call Ollama on your personal computer through its own `localhost`; a live version needs a model endpoint reachable by the hosting service and a protected way to store its API key.
+
+## Remaining roadmap
+
+The remaining core work is configurable provider-cost reporting, richer
+evaluation outputs, and final decision/failure documentation with a short
+demo. Public deployment is optional and can wait until you choose a hosted
+inference provider.
+
+**Current stage:** local MVP, first evaluation baseline, polished UI, 18 automated checks, and the initial input/fallback policy complete.

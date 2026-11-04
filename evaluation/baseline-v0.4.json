@@ -1,0 +1,930 @@
+{
+  "started_at_utc": "2026-11-03T09:37:22+00:00",
+  "updated_at_utc": "2026-11-03T09:42:00+00:00",
+  "provider": "ollama_local",
+  "model": "qwen3.5:4b",
+  "annotation_version": "0.4",
+  "dataset_size": 25,
+  "selected_ids": null,
+  "completed_examples": 25,
+  "summary": {
+    "completed_examples": 25,
+    "expected_pre_call_rejections": 2,
+    "correct_pre_call_rejections": 2,
+    "model_eligible_examples": 23,
+    "successful_extractions": 23,
+    "inference_errors": 0,
+    "unexpected_rejections": 0,
+    "unexpected_outputs_for_rejected_inputs": 0,
+    "field_accuracy": {
+      "name": {
+        "correct": 23,
+        "total": 23,
+        "percent": 100.0
+      },
+      "contact": {
+        "correct": 23,
+        "total": 23,
+        "percent": 100.0
+      },
+      "intent": {
+        "correct": 23,
+        "total": 23,
+        "percent": 100.0
+      },
+      "urgency": {
+        "correct": 23,
+        "total": 23,
+        "percent": 100.0
+      },
+      "budget_signal": {
+        "correct": 23,
+        "total": 23,
+        "percent": 100.0
+      },
+      "requires_human_review": {
+        "correct": 23,
+        "total": 23,
+        "percent": 100.0
+      },
+      "reason_for_review": {
+        "correct": 18,
+        "total": 23,
+        "percent": 78.3
+      }
+    },
+    "reason_presence_accuracy": {
+      "correct": 23,
+      "total": 23,
+      "percent": 100.0
+    },
+    "full_exact_matches": 18,
+    "full_exact_match_total": 23,
+    "full_exact_match_percent": 78.3,
+    "record_matches_ignoring_reason_wording": 23,
+    "record_match_ignoring_reason_wording_total": 23,
+    "record_match_ignoring_reason_wording_percent": 100.0
+  },
+  "results": [
+    {
+      "id": "P01",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": "Asha Mehta",
+        "contact": "asha.mehta@cedar.example",
+        "intent": "pricing_inquiry",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "actual": {
+        "name": "Asha Mehta",
+        "contact": "asha.mehta@cedar.example",
+        "intent": "pricing_inquiry",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": true
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P02",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": "Rohan Das",
+        "contact": "+1 202-555-0102",
+        "intent": "pricing_inquiry",
+        "urgency": "low",
+        "budget_signal": "mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "actual": {
+        "name": "Rohan Das",
+        "contact": "+1 202-555-0102",
+        "intent": "pricing_inquiry",
+        "urgency": "low",
+        "budget_signal": "mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": true
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P03",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": "Priya Nair",
+        "contact": "priya.nair@maple.example",
+        "intent": "pricing_inquiry",
+        "urgency": "high",
+        "budget_signal": "mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "actual": {
+        "name": "Priya Nair",
+        "contact": "priya.nair@maple.example",
+        "intent": "pricing_inquiry",
+        "urgency": "high",
+        "budget_signal": "mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": true
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P04",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": "Kunal",
+        "contact": "kunal@lumen.example",
+        "intent": "pricing_inquiry",
+        "urgency": "low",
+        "budget_signal": "unclear",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "actual": {
+        "name": "Kunal",
+        "contact": "kunal@lumen.example",
+        "intent": "pricing_inquiry",
+        "urgency": "low",
+        "budget_signal": "unclear",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": true
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P05",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": "Riya",
+        "contact": "riya@peepal.example",
+        "intent": "pricing_inquiry",
+        "urgency": "low",
+        "budget_signal": "mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "actual": {
+        "name": "Riya",
+        "contact": "riya@peepal.example",
+        "intent": "pricing_inquiry",
+        "urgency": "low",
+        "budget_signal": "mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": true
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P06",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": "Nikhil Shah",
+        "contact": "nikhil@aster.example",
+        "intent": "pricing_inquiry",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "actual": {
+        "name": "Nikhil Shah",
+        "contact": "nikhil@aster.example",
+        "intent": "pricing_inquiry",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": true
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P07",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": "Sana",
+        "contact": "sana@orbit.example",
+        "intent": "pricing_inquiry",
+        "urgency": "medium",
+        "budget_signal": "mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "actual": {
+        "name": "Sana",
+        "contact": "sana@orbit.example",
+        "intent": "pricing_inquiry",
+        "urgency": "medium",
+        "budget_signal": "mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": true
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P08",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": "Dev Malhotra",
+        "contact": "dev@northwind.example",
+        "intent": "pricing_inquiry",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "actual": {
+        "name": "Dev Malhotra",
+        "contact": "dev@northwind.example",
+        "intent": "pricing_inquiry",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": true
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P09",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": "Farah Khan",
+        "contact": "farah@willow.example",
+        "intent": "support_request",
+        "urgency": "high",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "actual": {
+        "name": "Farah Khan",
+        "contact": "farah@willow.example",
+        "intent": "support_request",
+        "urgency": "high",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": true
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P10",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": "Neha",
+        "contact": "neha@kesar.example",
+        "intent": "support_request",
+        "urgency": "high",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "actual": {
+        "name": "Neha",
+        "contact": "neha@kesar.example",
+        "intent": "support_request",
+        "urgency": "high",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": true
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P11",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": "Sameer Joshi",
+        "contact": "sameer@bluepeak.example",
+        "intent": "support_request",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "actual": {
+        "name": "Sameer Joshi",
+        "contact": "sameer@bluepeak.example",
+        "intent": "support_request",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": true
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P12",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": "Maya Iyer",
+        "contact": "maya@river.example",
+        "intent": "support_request",
+        "urgency": "high",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "actual": {
+        "name": "Maya Iyer",
+        "contact": "maya@river.example",
+        "intent": "support_request",
+        "urgency": "high",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": true
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P13",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": "Arjun",
+        "contact": "arjun@saffron.example",
+        "intent": "partnership",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "actual": {
+        "name": "Arjun",
+        "contact": "arjun@saffron.example",
+        "intent": "partnership",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": true
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P14",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": "Elena Ruiz",
+        "contact": "elena@ledgerworks.example",
+        "intent": "partnership",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "actual": {
+        "name": "Elena Ruiz",
+        "contact": "elena@ledgerworks.example",
+        "intent": "partnership",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": true
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P15",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": null,
+        "contact": "deals@bulk-mail.example",
+        "intent": "spam",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "actual": {
+        "name": null,
+        "contact": "deals@bulk-mail.example",
+        "intent": "spam",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": true
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P16",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": "Omar Haddad",
+        "contact": null,
+        "intent": "pricing_inquiry",
+        "urgency": "low",
+        "budget_signal": "unclear",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "actual": {
+        "name": "Omar Haddad",
+        "contact": null,
+        "intent": "pricing_inquiry",
+        "urgency": "low",
+        "budget_signal": "unclear",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": true
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P17",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": "Ravi",
+        "contact": null,
+        "intent": "other",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": true,
+        "reason_for_review": "The sender has not identified whether they need product information, setup advice, or technical support."
+      },
+      "actual": {
+        "name": "Ravi",
+        "contact": null,
+        "intent": "other",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": true,
+        "reason_for_review": "The message's intent is unclear."
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": false
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P18",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": null,
+        "contact": null,
+        "intent": "other",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": true,
+        "reason_for_review": "The message does not clearly state a request, and neither a name nor contact method is provided."
+      },
+      "actual": {
+        "name": null,
+        "contact": null,
+        "intent": "other",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": true,
+        "reason_for_review": "The message's intent is unclear. Both the sender's name and contact method are missing."
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": false
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P19",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": "Divya Menon",
+        "contact": "divya@ember.example",
+        "intent": "support_request",
+        "urgency": "high",
+        "budget_signal": "mentioned",
+        "requires_human_review": true,
+        "reason_for_review": "The message contains two actionable intents: an urgent support issue and a separate pricing request."
+      },
+      "actual": {
+        "name": "Divya Menon",
+        "contact": "divya@ember.example",
+        "intent": "support_request",
+        "urgency": "high",
+        "budget_signal": "mentioned",
+        "requires_human_review": true,
+        "reason_for_review": "The message contains multiple actionable intents: a support request; a pricing request."
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": false
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P20",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": null,
+        "contact": "partner@harbor.example",
+        "intent": "support_request",
+        "urgency": "high",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": true,
+        "reason_for_review": "The urgent support request and reseller partnership proposal are separate actionable intents."
+      },
+      "actual": {
+        "name": null,
+        "contact": "partner@harbor.example",
+        "intent": "support_request",
+        "urgency": "high",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": true,
+        "reason_for_review": "The message contains multiple actionable intents: a support request; a partnership proposal."
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": false
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P21",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": "Joel Fernandes",
+        "contact": "joel@mossfinch.example",
+        "intent": "pricing_inquiry",
+        "urgency": "medium",
+        "budget_signal": "mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "actual": {
+        "name": "Joel Fernandes",
+        "contact": "joel@mossfinch.example",
+        "intent": "pricing_inquiry",
+        "urgency": "medium",
+        "budget_signal": "mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": true
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P22",
+      "expected_pre_call_rejection": true,
+      "outcome": "expected_rejection",
+      "expected": {
+        "name": "Meera Kapoor",
+        "contact": "meera.kapoor@cedarfinch.example",
+        "intent": "pricing_inquiry",
+        "urgency": "medium",
+        "budget_signal": "mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "actual": null,
+      "field_matches": null,
+      "reason_presence_match": null,
+      "record_match_ignoring_reason_wording": null,
+      "error_type": null,
+      "error_message": "Message is 11,532 characters; the limit is 10,000. Shorten it and try again."
+    },
+    {
+      "id": "P23",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": "Clara Voss",
+        "contact": "clara@fieldstone.example",
+        "intent": "other",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "actual": {
+        "name": "Clara Voss",
+        "contact": "clara@fieldstone.example",
+        "intent": "other",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": false,
+        "reason_for_review": null
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": true
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    },
+    {
+      "id": "P24",
+      "expected_pre_call_rejection": true,
+      "outcome": "expected_rejection",
+      "expected": null,
+      "actual": null,
+      "field_matches": null,
+      "reason_presence_match": null,
+      "record_match_ignoring_reason_wording": null,
+      "error_type": null,
+      "error_message": "Message cannot be empty."
+    },
+    {
+      "id": "P25",
+      "expected_pre_call_rejection": false,
+      "outcome": "success",
+      "expected": {
+        "name": null,
+        "contact": null,
+        "intent": "other",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": true,
+        "reason_for_review": "The message is not interpretable enough to identify an intent."
+      },
+      "actual": {
+        "name": null,
+        "contact": null,
+        "intent": "other",
+        "urgency": "low",
+        "budget_signal": "not_mentioned",
+        "requires_human_review": true,
+        "reason_for_review": "The message's intent is unclear. Both the sender's name and contact method are missing."
+      },
+      "field_matches": {
+        "name": true,
+        "contact": true,
+        "intent": true,
+        "urgency": true,
+        "budget_signal": true,
+        "requires_human_review": true,
+        "reason_for_review": false
+      },
+      "reason_presence_match": true,
+      "record_match_ignoring_reason_wording": true,
+      "error_type": null,
+      "error_message": null
+    }
+  ]
+}
