@@ -185,9 +185,6 @@ structured-extraction-service/
 ├── evaluate.py             # Dataset evaluation and metrics
 ├── cost_report.py          # Usage and estimated-cost summary
 ├── ADR-001-local-ollama.md # Record of the local-model decision
-├── FAILURE_REGISTER.md     # Known failures, handling, and residual risks
-├── CASE_STUDY.md           # Five-line case study from the recorded baseline
-├── DEMO_SCRIPT.md          # Two-minute walkthrough outline
 ├── requirements.txt        # Python dependencies
 ├── .env.example            # Local Ollama settings template
 ├── .gitignore              # Excludes local secrets, notes, and generated reports
@@ -201,14 +198,11 @@ structured-extraction-service/
 └── tests/                  # Fast local unit and service-flow checks
 ```
 
-## Project documentation
+## Architecture decision
 
 The [architecture decision record](ADR-001-local-ollama.md) explains why the
-first version uses local Ollama. The [failure register](FAILURE_REGISTER.md)
-tracks how known problems are handled and what risks remain. The
-[case study](CASE_STUDY.md) and [demo script](DEMO_SCRIPT.md) summarize the
-recorded baseline. Personal study guides and progress notes stay local and are
-excluded from the public repository.
+first version uses local Ollama. Personal learning notes and presentation
+materials are kept on the developer's computer and excluded from this repository.
 
 ## Local use, privacy, and deployment
 

@@ -9,6 +9,9 @@ STEP*_GUIDE.md
 LEARNING_*.md
 MILESTONE_AUDIT.md
 ARCHITECTURE_CHECKPOINT.md
+CASE_STUDY.md
+FAILURE_REGISTER.md
+DEMO_SCRIPT.md
 
 # Generated working reports; keep versioned baselines available for sharing.
 evaluation/latest_report.json
